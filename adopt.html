@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>StrayCare — Adopt</title>
+    <meta name="description" content="Browse adoptable dogs, cats, and other animals.">
+    <link rel="stylesheet" href="styles.css">
+  </head>
+  <body>
+    <header>
+      <div class="container">
+        <a href="index.html" aria-label="StrayCare Home">
+          <h1>StrayCare</h1>
+        </a>
+        <form class="site-search" role="search" aria-label="Site search" onsubmit="event.preventDefault();">
+          <input type="search" placeholder="Search pets, services, help…" aria-label="Search" />
+          <button type="submit" aria-label="Search">🔍</button>
+        </form>
+        <nav aria-label="Primary">
+          <ul>
+            <li><a href="about.html">About</a></li>
+            <li><a href="adopt.html" aria-current="page">Adopt</a></li>
+            <li><a href="services.html">Services</a></li>
+            <li><a href="donate.html">Donate</a></li>
+            <li><a href="volunteer.html">Volunteer</a></li>
+            <li><a href="emergency.html">Emergency</a></li>
+            <li><a href="contact.html">Contact</a></li>
+          </ul>
+        </nav>
+        <div class="user-actions">
+          <div class="user-dropdown">
+            <button class="user-icon" aria-label="User Menu">👤</button>
+            <div class="dropdown-menu">
+              <a href="login.html">Login</a>
+              <a href="register.html">Register (User)</a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <main>
+      <div class="container">
+        <section aria-labelledby="filters-title">
+          <h2 id="filters-title">Filters</h2>
+          <form>
+            <fieldset>
+              <legend>Animal type</legend>
+              <label><input type="radio" name="type" value="all" checked> All</label>
+              <label><input type="radio" name="type" value="dog"> Dogs</label>
+              <label><input type="radio" name="type" value="cat"> Cats</label>
+              <label><input type="radio" name="type" value="other"> Other</label>
+            </fieldset>
+            <fieldset>
+              <legend>Age</legend>
+              <label><input type="checkbox" name="age" value="puppy"> Puppy/Kitten</label>
+              <label><input type="checkbox" name="age" value="adult"> Adult</label>
+              <label><input type="checkbox" name="age" value="senior"> Senior</label>
+            </fieldset>
+          </form>
+        </section>
+
+        <section aria-labelledby="results-title">
+          <h2 id="results-title">Adoptable animals</h2>
+          <div class="pets-grid">
+            <article class="pet-card">
+              <div class="pet-image">
+                <img src="https://images.unsplash.com/photo-1552053831-71594a27632d?w=400&h=300&fit=crop&crop=center" alt="Buddy the dog" loading="lazy">
+              </div>
+              <div class="pet-info">
+                <h3>Buddy — Dog</h3>
+                <p>2 years • Male • Vaccinated</p>
+                <p>Friendly and energetic. Good with kids.</p>
+                <a href="#">Adoption inquiry</a>
+              </div>
+            </article>
+            <article class="pet-card">
+              <div class="pet-image">
+                <img src="https://images.unsplash.com/photo-1514888286974-6c03e2a1a220?w=400&h=300&fit=crop&crop=center" alt="Luna the cat" loading="lazy">
+              </div>
+              <div class="pet-info">
+                <h3>Luna — Cat</h3>
+                <p>1 year • Female • Spayed</p>
+                <p>Quiet and affectionate. Indoor only.</p>
+                <a href="#">Adoption inquiry</a>
+              </div>
+            </article>
+            <article class="pet-card">
+              <div class="pet-image">
+                <img src="https://images.unsplash.com/photo-1543852786-1cf6624b998d?w=400&h=300&fit=crop&crop=center" alt="Max the puppy" loading="lazy">
+              </div>
+              <div class="pet-info">
+                <h3>Max — Puppy</h3>
+                <p>6 months • Male • Vaccinated</p>
+                <p>Energetic and playful. Loves to learn new tricks.</p>
+                <a href="#">Adoption inquiry</a>
+              </div>
+            </article>
+            <article class="pet-card">
+              <div class="pet-image">
+                <img src="https://images.unsplash.com/photo-1513360371669-4adf3dd7dff8?w=400&h=300&fit=crop&crop=center" alt="Whiskers the kitten" loading="lazy">
+              </div>
+              <div class="pet-info">
+                <h3>Whiskers — Kitten</h3>
+                <p>4 months • Female • Vaccinated</p>
+                <p>Curious and adventurous. Perfect for active families.</p>
+                <a href="#">Adoption inquiry</a>
+              </div>
+            </article>
+          </div>
+        </section>
+      </div>
+    </main>
+
+    <footer>
+      <div class="container">
+        <div class="newsletter">
+          <h3>Join our community</h3>
+          <p>Get stories, adoption drives, and rescue tips in your inbox.</p>
+          <form class="newsletter-form" aria-label="Newsletter subscription" onsubmit="event.preventDefault(); this.reset();">
+            <input type="email" placeholder="Your email address" aria-label="Email" required>
+            <button type="submit">Subscribe</button>
+          </form>
+        </div>
+        <p>
+          © <span id="year">2025</span> StrayCare
+          • <a href="contact.html">Contact</a>
+          • <a href="donate.html">Donate</a>
+        </p>
+      </div>
+    </footer>
+  </body>
+</html>
+
+

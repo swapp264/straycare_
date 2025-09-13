@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>StrayCare — Services</title>
+    <meta name="description" content="Rescue, medical, fostering, and community services.">
+    <link rel="stylesheet" href="styles.css">
+  </head>
+  <body>
+    <header>
+      <div class="container">
+        <a href="index.html" aria-label="StrayCare Home">
+          <h1>StrayCare</h1>
+        </a>
+        <form class="site-search" role="search" aria-label="Site search" onsubmit="event.preventDefault();">
+          <input type="search" placeholder="Search pets, services, help…" aria-label="Search" />
+          <button type="submit" aria-label="Search">🔍</button>
+        </form>
+        <nav aria-label="Primary">
+          <ul>
+            <li><a href="about.html">About</a></li>
+            <li><a href="adopt.html">Adopt</a></li>
+            <li><a href="services.html" aria-current="page">Services</a></li>
+            <li><a href="donate.html">Donate</a></li>
+            <li><a href="volunteer.html">Volunteer</a></li>
+            <li><a href="emergency.html">Emergency</a></li>
+            <li><a href="contact.html">Contact</a></li>
+          </ul>
+        </nav>
+        <div class="user-actions">
+          <div class="user-dropdown">
+            <button class="user-icon" aria-label="User Menu">👤</button>
+            <div class="dropdown-menu">
+              <a href="login.html">Login</a>
+              <a href="register.html">Register (User)</a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <main>
+      <div class="container">
+        <section aria-labelledby="rescue-title" class="service-card">
+          <div class="service-image">
+            <img src="https://images.unsplash.com/photo-1587764379873-97837921fd44?w=400&h=250&fit=crop&crop=center" alt="Animal rescue operation" loading="lazy">
+          </div>
+          <div class="service-content">
+            <h2 id="rescue-title">Rescue and intake</h2>
+            <p>24/7 response to reports of injured or homeless animals.</p>
+          </div>
+        </section>
+
+        <section aria-labelledby="medical-title" class="service-card">
+          <div class="service-image">
+            <img src="https://images.unsplash.com/photo-1576201836106-db1758fd1c97?w=400&h=250&fit=crop&crop=center" alt="Veterinary care" loading="lazy">
+          </div>
+          <div class="service-content">
+            <h2 id="medical-title">Medical care</h2>
+            <p>Vaccinations, spay/neuter, and treatment through partner clinics.</p>
+          </div>
+        </section>
+
+        <section aria-labelledby="foster-title" class="service-card">
+          <div class="service-image">
+            <img src="https://images.unsplash.com/photo-1583511655857-d19b40a7a54e?w=400&h=250&fit=crop&crop=center" alt="Foster family with pet" loading="lazy">
+          </div>
+          <div class="service-content">
+            <h2 id="foster-title">Fostering</h2>
+            <p>Short-term homes to socialize animals before adoption.</p>
+          </div>
+        </section>
+
+        <section aria-labelledby="education-title" class="service-card">
+          <div class="service-image">
+            <img src="https://images.unsplash.com/photo-1583337130417-3346a1be7dee?w=400&h=250&fit=crop&crop=center" alt="Pet care workshop" loading="lazy">
+          </div>
+          <div class="service-content">
+            <h2 id="education-title">Community education</h2>
+            <p>Workshops on responsible pet care and TNR programs.</p>
+          </div>
+        </section>
+      </div>
+    </main>
+
+    <footer>
+      <div class="container">
+        <div class="newsletter">
+          <h3>Join our community</h3>
+          <p>Get stories, adoption drives, and rescue tips in your inbox.</p>
+          <form class="newsletter-form" aria-label="Newsletter subscription" onsubmit="event.preventDefault(); this.reset();">
+            <input type="email" placeholder="Your email address" aria-label="Email" required>
+            <button type="submit">Subscribe</button>
+          </form>
+        </div>
+        <p>
+          © <span id="year">2025</span> StrayCare
+          • <a href="contact.html">Contact</a>
+          • <a href="donate.html">Donate</a>
+        </p>
+      </div>
+    </footer>
+  </body>
+</html>
+
+
