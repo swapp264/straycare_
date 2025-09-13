@@ -24,6 +24,7 @@
             <li><a href="services.html">Services</a></li>
             <li><a href="donate.html">Donate</a></li>
             <li><a href="volunteer.html" aria-current="page">Volunteer</a></li>
+                    <li><a href="dashboard.html">Dashboard</a></li>
             <li><a href="emergency.html">Emergency</a></li>
             <li><a href="contact.html">Contact</a></li>
           </ul>
@@ -84,6 +85,22 @@
               <h3>Content and outreach</h3>
               <p class="role-preview">Create content and manage social media presence</p>
               <button class="view-details-btn">View Details</button>
+            </div>
+          </div>
+        </section>
+
+        <section aria-labelledby="scheduling-title">
+          <h2 id="scheduling-title">Volunteer Management</h2>
+          <div class="management-options">
+            <div class="management-card">
+              <h3>📅 NGO Dashboard</h3>
+              <p>Access the complete volunteer management system with scheduling, directory, and all management features.</p>
+              <a href="dashboard.html" class="btn-primary">Open Dashboard</a>
+            </div>
+            <div class="management-card">
+              <h3>👥 Volunteer Directory</h3>
+              <p>View volunteer profiles, assign tasks, and manage volunteer information.</p>
+              <a href="dashboard.html" class="btn-secondary">View Directory</a>
             </div>
           </div>
         </section>
@@ -284,6 +301,83 @@
       .role-details li {
         margin: 0.5rem 0;
       }
+      .management-options {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 2rem;
+        margin-bottom: 2rem;
+      }
+      
+      .management-card {
+        background: rgba(255, 255, 255, 0.95);
+        border-radius: 20px;
+        padding: 2rem;
+        text-align: center;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+        border: 1px solid rgba(255, 140, 0, 0.2);
+        transition: all 0.3s ease;
+        position: relative;
+        overflow: hidden;
+      }
+      
+      .management-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 4px;
+        background: linear-gradient(135deg, #FF8C00 0%, #FF6347 100%);
+      }
+      
+      .management-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 15px 35px rgba(0, 0, 0, 0.15);
+      }
+      
+      .management-card h3 {
+        color: #FF8C00;
+        font-size: 1.3rem;
+        margin-bottom: 1rem;
+        font-weight: 700;
+      }
+      
+      .management-card p {
+        color: #654321;
+        margin-bottom: 1.5rem;
+        line-height: 1.6;
+      }
+      
+      .btn-primary, .btn-secondary {
+        display: inline-block;
+        padding: 0.75rem 1.5rem;
+        border-radius: 25px;
+        text-decoration: none;
+        font-weight: 600;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+      }
+      
+      .btn-primary {
+        background: linear-gradient(135deg, #FF8C00 0%, #FF6347 100%);
+        color: white;
+      }
+      
+      .btn-primary:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(255, 140, 0, 0.4);
+      }
+      
+      .btn-secondary {
+        background: #6c757d;
+        color: white;
+      }
+      
+      .btn-secondary:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(108, 117, 125, 0.4);
+      }
+
       @media (max-width: 768px) {
         .form-row {
           grid-template-columns: 1fr;
@@ -291,6 +385,9 @@
         .modal-content {
           width: 95%;
           margin: 10% auto;
+        }
+        .management-options {
+          grid-template-columns: 1fr;
         }
       }
     </style>
