@@ -34,6 +34,11 @@ document.addEventListener('DOMContentLoaded', function() {
             console.log('Timeout reached, creating fallback data...');
             createFallbackData();
         }
+        // Force update pagination after data is loaded
+        setTimeout(() => {
+            console.log('Force updating pagination...');
+            updatePagination();
+        }, 500);
     }, 2000);
 });
 
@@ -908,14 +913,30 @@ function updatePagination() {
         totalPages,
         currentPage,
         filteredCasesLength: filteredCases.length,
-        casesPerPage
+        casesPerPage,
+        paginationElement: pagination
     });
     
     if (!pagination) {
         console.error('Pagination element not found!');
+        // Try to find it with different selectors
+        const altPagination = document.querySelector('.pagination') || 
+                            document.querySelector('[class*="pagination"]') ||
+                            document.querySelector('#pagination');
+        if (altPagination) {
+            console.log('Found pagination with alternative selector');
+            altPagination.innerHTML = createPaginationHTML(totalPages);
+            return;
+        }
         return;
     }
     
+    pagination.innerHTML = createPaginationHTML(totalPages);
+    console.log('Pagination HTML updated for', totalPages, 'pages');
+}
+
+// Create pagination HTML
+function createPaginationHTML(totalPages) {
     let paginationHTML = '';
     
     // Add Previous button
@@ -964,8 +985,7 @@ function updatePagination() {
         `;
     }
     
-    pagination.innerHTML = paginationHTML;
-    console.log('Pagination HTML updated:', paginationHTML);
+    return paginationHTML;
 }
 
 // Change page
@@ -1004,31 +1024,100 @@ async function handleNewCaseSubmit(event) {
         priority: document.getElementById('priority').value
     };
     
+    // Validate required fields
+    if (!newCaseData.title || !newCaseData.description || !newCaseData.location || !newCaseData.reportedBy || !newCaseData.phone) {
+        showNotification('Please fill in all required fields', 'error');
+        return;
+    }
+    
     try {
-        const response = await fetch('/api/rescue-cases', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(newCaseData)
-        });
-        
-        const data = await response.json();
-        
-        if (data.success) {
-            // Reload cases from backend to get updated list
-            await loadCasesFromBackend();
+        // Try to create case via server first
+        try {
+            const response = await fetch('/api/rescue-cases', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(newCaseData)
+            });
             
-            // Close modal
-            closeNewCaseModal();
+            const data = await response.json();
             
-            // Show success message
-            showNotification('New case created successfully!', 'success');
-        } else {
-            showNotification('Failed to create case: ' + (data.error || 'Unknown error'), 'error');
+            if (data.success) {
+                // Reload cases from backend to get updated list
+                await loadCasesFromBackend();
+                
+                // Close modal
+                closeNewCaseModal();
+                
+                // Show success message
+                showNotification('New case created successfully!', 'success');
+                return;
+            } else {
+                throw new Error(data.error || 'Server error');
+            }
+        } catch (serverError) {
+            console.log('Server creation failed, using fallback:', serverError);
         }
+        
+        // Fallback: Create case locally
+        createCaseFallback(newCaseData);
+        
     } catch (error) {
         console.error('Error creating case:', error);
+        showNotification('Failed to create case. Please try again.', 'error');
+    }
+}
+
+// Fallback function to create case locally when server is not available
+function createCaseFallback(newCaseData) {
+    try {
+        // Generate a unique ID
+        const newId = 'local_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+        
+        // Create new case object
+        const newCase = {
+            id: newId,
+            title: newCaseData.title,
+            status: 'pending',
+            priority: newCaseData.priority || 'medium',
+            location: newCaseData.location.toLowerCase().split(' ')[0],
+            reportedBy: newCaseData.reportedBy,
+            locationFull: newCaseData.location,
+            reportedTime: 'Just now',
+            animalType: newCaseData.description.split(',')[0] || 'Animal',
+            condition: newCaseData.description,
+            assignedVolunteer: null,
+            phone: newCaseData.phone,
+            image: 'https://images.unsplash.com/photo-1552053831-71594a27632d?w=300&h=200&fit=crop'
+        };
+        
+        // Add to current cases
+        currentCases.unshift(newCase); // Add to beginning
+        filteredCases = [...currentCases];
+        
+        // Update display
+        updateCasesDisplay();
+        updateStats();
+        
+        // Close modal
+        closeNewCaseModal();
+        
+        // Clear form
+        document.getElementById('caseTitle').value = '';
+        document.getElementById('condition').value = '';
+        document.getElementById('location').value = '';
+        document.getElementById('reporterName').value = '';
+        document.getElementById('reporterPhone').value = '';
+        document.getElementById('priority').value = 'medium';
+        
+        // Show success message
+        showNotification('New case created successfully! (Saved locally)', 'success');
+        
+        console.log('Case created locally:', newCase);
+        
+    } catch (error) {
+        console.error('Fallback case creation error:', error);
         showNotification('Failed to create case. Please try again.', 'error');
     }
 }
@@ -1156,40 +1245,127 @@ async function exportCases() {
         const format = await showExportFormatModal();
         if (!format) return;
         
-        // Fetch data from backend
-        const response = await fetch(`/api/rescue-cases/export?format=${format}`);
-        
-        if (!response.ok) {
-            throw new Error(`Export failed: ${response.statusText}`);
+        // Try to fetch data from backend first
+        try {
+            const response = await fetch(`/api/rescue-cases/export?format=${format}`);
+            
+            if (response.ok) {
+                // Create blob and download
+                const blob = await response.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.style.display = 'none';
+                a.href = url;
+                
+                // Get filename from response headers or use default
+                const contentDisposition = response.headers.get('Content-Disposition');
+                let filename = `rescue_cases_${new Date().toISOString().split('T')[0]}.${format}`;
+                if (contentDisposition) {
+                    const filenameMatch = contentDisposition.match(/filename="(.+)"/);
+                    if (filenameMatch) {
+                        filename = filenameMatch[1];
+                    }
+                }
+                
+                a.download = filename;
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+                document.body.removeChild(a);
+                
+                showNotification(`Cases data exported successfully as ${format.toUpperCase()}!`, 'success');
+                return;
+            }
+        } catch (serverError) {
+            console.log('Server export failed, using fallback export:', serverError);
         }
         
-        // Create blob and download
-        const blob = await response.blob();
+        // Fallback: Export current data from frontend
+        exportCasesFallback(format);
+        
+    } catch (error) {
+        console.error('Export error:', error);
+        showNotification('Failed to export data. Please try again.', 'error');
+    }
+}
+
+// Fallback export function when server is not available
+function exportCasesFallback(format) {
+    try {
+        const dataToExport = filteredCases.length > 0 ? filteredCases : currentCases;
+        
+        if (dataToExport.length === 0) {
+            showNotification('No data available to export', 'warning');
+            return;
+        }
+        
+        let content, mimeType, filename;
+        
+        if (format === 'csv') {
+            // Generate CSV
+            const csvHeader = 'ID,Title,Description,Location,Reported By,Phone,Status,Priority,Assigned Volunteer,Reported Time\n';
+            const csvRows = dataToExport.map(case_ => {
+                return [
+                    case_.id,
+                    `"${case_.title.replace(/"/g, '""')}"`,
+                    `"${case_.condition.replace(/"/g, '""')}"`,
+                    `"${case_.locationFull.replace(/"/g, '""')}"`,
+                    `"${case_.reportedBy.replace(/"/g, '""')}"`,
+                    case_.phone,
+                    case_.status,
+                    case_.priority,
+                    `"${case_.assignedVolunteer || 'Not Assigned'}"`,
+                    case_.reportedTime
+                ].join(',');
+            }).join('\n');
+            
+            content = csvHeader + csvRows;
+            mimeType = 'text/csv';
+            filename = `rescue_cases_${new Date().toISOString().split('T')[0]}.csv`;
+            
+        } else {
+            // Generate JSON
+            const exportData = {
+                exportDate: new Date().toISOString(),
+                totalCases: dataToExport.length,
+                exportSource: 'Frontend Fallback',
+                cases: dataToExport.map(case_ => ({
+                    id: case_.id,
+                    title: case_.title,
+                    description: case_.condition,
+                    location: case_.locationFull,
+                    reportedBy: case_.reportedBy,
+                    phone: case_.phone,
+                    status: case_.status,
+                    priority: case_.priority,
+                    assignedVolunteer: case_.assignedVolunteer,
+                    reportedTime: case_.reportedTime,
+                    animalType: case_.animalType
+                }))
+            };
+            
+            content = JSON.stringify(exportData, null, 2);
+            mimeType = 'application/json';
+            filename = `rescue_cases_${new Date().toISOString().split('T')[0]}.json`;
+        }
+        
+        // Create and download file
+        const blob = new Blob([content], { type: mimeType });
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.style.display = 'none';
         a.href = url;
-        
-        // Get filename from response headers or use default
-        const contentDisposition = response.headers.get('Content-Disposition');
-        let filename = `rescue_cases_${new Date().toISOString().split('T')[0]}.${format}`;
-        if (contentDisposition) {
-            const filenameMatch = contentDisposition.match(/filename="(.+)"/);
-            if (filenameMatch) {
-                filename = filenameMatch[1];
-            }
-        }
-        
         a.download = filename;
+        
         document.body.appendChild(a);
         a.click();
         window.URL.revokeObjectURL(url);
         document.body.removeChild(a);
         
-        showNotification(`Cases data exported successfully as ${format.toUpperCase()}!`, 'success');
+        showNotification(`Cases data exported successfully as ${format.toUpperCase()}! (${dataToExport.length} cases)`, 'success');
         
     } catch (error) {
-        console.error('Export error:', error);
+        console.error('Fallback export error:', error);
         showNotification('Failed to export data. Please try again.', 'error');
     }
 }
