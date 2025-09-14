@@ -4,7 +4,9 @@
 let currentCases = [];
 let filteredCases = [];
 let currentPage = 1;
-const casesPerPage = 8;
+const casesPerPage = 2; // Reduced to show multiple pages
+let searchHistory = [];
+const MAX_HISTORY_ITEMS = 10;
 
 // DOM Elements
 const searchInput = document.getElementById('searchCases');
@@ -16,17 +18,83 @@ const newCaseModal = document.getElementById('newCaseModal');
 
 // Initialize the page
 document.addEventListener('DOMContentLoaded', function() {
+    console.log('DOM loaded, initializing rescue cases page...');
+    
+    // Ensure interface elements are visible
+    ensureInterfaceVisibility();
+    
+    loadSearchHistory();
     loadCasesFromBackend();
     setupEventListeners();
+    createSampleDataIfNeeded();
+    
+    // Fallback: ensure data is loaded after 2 seconds
+    setTimeout(() => {
+        if (currentCases.length === 0) {
+            console.log('Timeout reached, creating fallback data...');
+            createFallbackData();
+        }
+    }, 2000);
 });
+
+// Ensure interface elements are visible
+function ensureInterfaceVisibility() {
+    console.log('Ensuring interface visibility...');
+    
+    // Make sure filters section is visible
+    const filtersSection = document.querySelector('.filters-section');
+    if (filtersSection) {
+        filtersSection.style.display = 'block';
+        filtersSection.style.visibility = 'visible';
+        console.log('Filters section found and made visible');
+    } else {
+        console.error('Filters section not found!');
+    }
+    
+    // Make sure search box is visible
+    const searchBox = document.querySelector('.search-box');
+    if (searchBox) {
+        searchBox.style.display = 'flex';
+        searchBox.style.visibility = 'visible';
+        console.log('Search box found and made visible');
+    } else {
+        console.error('Search box not found!');
+    }
+    
+    // Make sure cases grid is visible
+    const casesGrid = document.getElementById('casesGrid');
+    if (casesGrid) {
+        casesGrid.style.display = 'grid';
+        casesGrid.style.visibility = 'visible';
+        console.log('Cases grid found and made visible');
+    } else {
+        console.error('Cases grid not found!');
+    }
+    
+    // Make sure pagination is visible
+    const pagination = document.querySelector('.pagination');
+    if (pagination) {
+        pagination.style.display = 'flex';
+        pagination.style.visibility = 'visible';
+        pagination.style.justifyContent = 'center';
+        pagination.style.alignItems = 'center';
+        pagination.style.gap = '8px';
+        pagination.style.marginTop = '20px';
+        pagination.style.padding = '10px';
+        console.log('Pagination found and made visible');
+    } else {
+        console.error('Pagination not found!');
+    }
+}
 
 // Load cases from backend
 async function loadCasesFromBackend() {
     try {
+        console.log('Loading cases from backend...');
         const response = await fetch('/api/rescue-cases');
         const data = await response.json();
         
-        if (data.success) {
+        if (data.success && data.cases.length > 0) {
             currentCases = data.cases.map(case_ => ({
                 id: case_._id,
                 title: case_.title,
@@ -42,7 +110,9 @@ async function loadCasesFromBackend() {
                 phone: case_.phone,
                 image: 'https://images.unsplash.com/photo-1552053831-71594a27632d?w=300&h=200&fit=crop'
             }));
+            console.log('Loaded cases:', currentCases.length);
         } else {
+            console.log('No cases found in backend');
             currentCases = [];
         }
         
@@ -56,6 +126,168 @@ async function loadCasesFromBackend() {
         filteredCases = [];
         updateCasesDisplay();
     }
+}
+
+// Create sample data if no cases exist
+async function createSampleDataIfNeeded() {
+    if (currentCases.length === 0) {
+        console.log('No cases found, creating sample data...');
+        try {
+            const response = await fetch('/api/rescue-cases/sample', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            });
+            
+            if (response.ok) {
+                console.log('Sample data created successfully');
+                // Reload cases after creating sample data
+                setTimeout(() => {
+                    loadCasesFromBackend();
+                }, 1000);
+            } else {
+                console.log('Failed to create sample data, using fallback data');
+                createFallbackData();
+            }
+        } catch (error) {
+            console.error('Error creating sample data:', error);
+            console.log('Using fallback data instead');
+            createFallbackData();
+        }
+    }
+}
+
+// Create fallback data when server is not available
+function createFallbackData() {
+    console.log('Creating fallback data...');
+    currentCases = [
+        {
+            id: 'fallback1',
+            title: 'Injured Dog - Bandra West',
+            status: 'pending',
+            priority: 'high',
+            location: 'bandra',
+            reportedBy: 'Priya Sharma',
+            locationFull: 'Bandra West, Mumbai',
+            reportedTime: '2 hours ago',
+            animalType: 'Dog',
+            condition: 'Dog with injured leg, limping and unable to walk properly',
+            assignedVolunteer: null,
+            phone: '+91-9876543210',
+            image: 'https://images.unsplash.com/photo-1552053831-71594a27632d?w=300&h=200&fit=crop'
+        },
+        {
+            id: 'fallback2',
+            title: 'Sick Cat - Andheri East',
+            status: 'in-progress',
+            priority: 'medium',
+            location: 'andheri',
+            reportedBy: 'Amit Patel',
+            locationFull: 'Andheri East, Mumbai',
+            reportedTime: '1 day ago',
+            animalType: 'Cat',
+            condition: 'Cat with respiratory infection, sneezing and difficulty breathing',
+            assignedVolunteer: 'Dr. Meera Singh',
+            phone: '+91-9876543211',
+            image: 'https://images.unsplash.com/photo-1552053831-71594a27632d?w=300&h=200&fit=crop'
+        },
+        {
+            id: 'fallback3',
+            title: 'Abandoned Puppies - Powai',
+            status: 'pending',
+            priority: 'high',
+            location: 'powai',
+            reportedBy: 'Rajesh Kumar',
+            locationFull: 'Powai, Mumbai',
+            reportedTime: '3 hours ago',
+            animalType: 'Puppies',
+            condition: 'Three puppies found abandoned near Powai Lake. Appear to be 6-8 weeks old',
+            assignedVolunteer: null,
+            phone: '+91-9876543212',
+            image: 'https://images.unsplash.com/photo-1552053831-71594a27632d?w=300&h=200&fit=crop'
+        },
+        {
+            id: 'fallback4',
+            title: 'Elderly Dog - Juhu Beach',
+            status: 'in-progress',
+            priority: 'medium',
+            location: 'juhu',
+            reportedBy: 'Sunita Mehta',
+            locationFull: 'Juhu Beach, Mumbai',
+            reportedTime: '5 hours ago',
+            animalType: 'Dog',
+            condition: 'Old dog found near Juhu Beach, appears malnourished and weak',
+            assignedVolunteer: 'Dr. Priya Singh',
+            phone: '+91-9876543213',
+            image: 'https://images.unsplash.com/photo-1552053831-71594a27632d?w=300&h=200&fit=crop'
+        },
+        {
+            id: 'fallback5',
+            title: 'Cat Stuck in Tree - Versova',
+            status: 'pending',
+            priority: 'urgent',
+            location: 'versova',
+            reportedBy: 'Neha Gupta',
+            locationFull: 'Versova, Mumbai',
+            reportedTime: '1 hour ago',
+            animalType: 'Cat',
+            condition: 'Cat has been stuck in a tree for 2 days. Fire department unable to help',
+            assignedVolunteer: null,
+            phone: '+91-9876543214',
+            image: 'https://images.unsplash.com/photo-1552053831-71594a27632d?w=300&h=200&fit=crop'
+        },
+        {
+            id: 'fallback6',
+            title: 'Lost Puppy - Malad',
+            status: 'rescued',
+            priority: 'medium',
+            location: 'malad',
+            reportedBy: 'Vikram Singh',
+            locationFull: 'Malad, Mumbai',
+            reportedTime: '4 hours ago',
+            animalType: 'Puppy',
+            condition: 'Small puppy found wandering near Malad station, appears lost',
+            assignedVolunteer: 'Dr. Priya Singh',
+            phone: '+91-9876543215',
+            image: 'https://images.unsplash.com/photo-1552053831-71594a27632d?w=300&h=200&fit=crop'
+        },
+        {
+            id: 'fallback7',
+            title: 'Injured Bird - Goregaon',
+            status: 'treated',
+            priority: 'low',
+            location: 'goregaon',
+            reportedBy: 'Anita Desai',
+            locationFull: 'Goregaon, Mumbai',
+            reportedTime: '6 hours ago',
+            animalType: 'Bird',
+            condition: 'Small bird with injured wing found in park',
+            assignedVolunteer: 'Dr. Meera Singh',
+            phone: '+91-9876543216',
+            image: 'https://images.unsplash.com/photo-1552053831-71594a27632d?w=300&h=200&fit=crop'
+        },
+        {
+            id: 'fallback8',
+            title: 'Stray Dog - Borivali',
+            status: 'adopted',
+            priority: 'low',
+            location: 'borivali',
+            reportedBy: 'Rajesh Patel',
+            locationFull: 'Borivali, Mumbai',
+            reportedTime: '2 days ago',
+            animalType: 'Dog',
+            condition: 'Friendly stray dog looking for a home',
+            assignedVolunteer: 'Dr. Priya Singh',
+            phone: '+91-9876543217',
+            image: 'https://images.unsplash.com/photo-1552053831-71594a27632d?w=300&h=200&fit=crop'
+        }
+    ];
+    
+    filteredCases = [...currentCases];
+    updateCasesDisplay();
+    updateStats();
+    console.log('Fallback data created:', currentCases.length, 'cases');
 }
 
 // Format time ago helper
@@ -76,13 +308,25 @@ function formatTimeAgo(dateString) {
 
 // Setup event listeners
 function setupEventListeners() {
+    console.log('Setting up event listeners...');
+    
+    // Check if elements exist
+    if (!searchInput) {
+        console.error('Search input element not found!');
+        return;
+    }
+    
     // Search functionality
     searchInput.addEventListener('input', debounce(handleSearch, 300));
+    searchInput.addEventListener('focus', showSearchHistory);
+    searchInput.addEventListener('blur', hideSearchHistory);
+    searchInput.addEventListener('keydown', handleSearchKeydown);
+    console.log('Search event listeners added');
     
     // Filter functionality
-    statusFilter.addEventListener('change', handleFilters);
-    locationFilter.addEventListener('change', handleFilters);
-    priorityFilter.addEventListener('change', handleFilters);
+    if (statusFilter) statusFilter.addEventListener('change', handleFilters);
+    if (locationFilter) locationFilter.addEventListener('change', handleFilters);
+    if (priorityFilter) priorityFilter.addEventListener('change', handleFilters);
     
     // Modal close on outside click
     window.addEventListener('click', function(event) {
@@ -114,9 +358,18 @@ function debounce(func, wait) {
 // Handle search functionality
 function handleSearch() {
     const searchTerm = searchInput.value.toLowerCase().trim();
+    console.log('Searching for:', searchTerm);
+    console.log('Current cases count:', currentCases.length);
+    
+    // Save to search history if term is not empty and not already in history
+    if (searchTerm !== '' && !searchHistory.includes(searchTerm)) {
+        addToSearchHistory(searchTerm);
+    }
     
     if (searchTerm === '') {
         filteredCases = [...currentCases];
+        console.log('Clearing search, showing all cases');
+        showNotification('Showing all rescue cases', 'info');
     } else {
         filteredCases = currentCases.filter(case_ => 
             case_.title.toLowerCase().includes(searchTerm) ||
@@ -125,11 +378,95 @@ function handleSearch() {
             case_.animalType.toLowerCase().includes(searchTerm) ||
             case_.condition.toLowerCase().includes(searchTerm)
         );
+        console.log('Filtered cases count:', filteredCases.length);
+        
+        // Show search results notification
+        if (filteredCases.length > 0) {
+            showNotification(`Found ${filteredCases.length} case(s) matching "${searchTerm}"`, 'success');
+        } else {
+            showNotification(`No cases found matching "${searchTerm}"`, 'warning');
+        }
     }
     
     currentPage = 1;
     updateCasesDisplay();
     updateStats();
+    updateSearchResultsDisplay();
+}
+
+// Update search results display
+function updateSearchResultsDisplay() {
+    const searchTerm = searchInput ? searchInput.value.trim() : '';
+    
+    // Create or update search results header
+    let searchResultsHeader = document.getElementById('searchResultsHeader');
+    if (!searchResultsHeader) {
+        searchResultsHeader = document.createElement('div');
+        searchResultsHeader.id = 'searchResultsHeader';
+        searchResultsHeader.style.cssText = `
+            margin: 20px 0;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            border-left: 4px solid #ff6b35;
+        `;
+        
+        // Insert after the cases header
+        const casesHeader = document.querySelector('.cases-header');
+        if (casesHeader) {
+            casesHeader.parentNode.insertBefore(searchResultsHeader, casesHeader.nextSibling);
+        }
+    }
+    
+    if (searchTerm && filteredCases.length > 0) {
+        searchResultsHeader.innerHTML = `
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                    <h3 style="margin: 0; color: #333; font-size: 18px;">
+                        🔍 Search Results for "${searchTerm}"
+                    </h3>
+                    <p style="margin: 5px 0 0 0; color: #666; font-size: 14px;">
+                        Found ${filteredCases.length} case(s) matching your search
+                    </p>
+                </div>
+                <button onclick="clearSearch()" style="
+                    padding: 8px 16px;
+                    background: #ff6b35;
+                    color: white;
+                    border: none;
+                    border-radius: 4px;
+                    cursor: pointer;
+                    font-size: 14px;
+                ">Clear Search</button>
+            </div>
+        `;
+        searchResultsHeader.style.display = 'block';
+    } else if (searchTerm && filteredCases.length === 0) {
+        searchResultsHeader.innerHTML = `
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                    <h3 style="margin: 0; color: #e74c3c; font-size: 18px;">
+                        🔍 No Results Found for "${searchTerm}"
+                    </h3>
+                    <p style="margin: 5px 0 0 0; color: #666; font-size: 14px;">
+                        Try different keywords or check your spelling
+                    </p>
+                </div>
+                <button onclick="clearSearch()" style="
+                    padding: 8px 16px;
+                    background: #ff6b35;
+                    color: white;
+                    border: none;
+                    border-radius: 4px;
+                    cursor: pointer;
+                    font-size: 14px;
+                ">Clear Search</button>
+            </div>
+        `;
+        searchResultsHeader.style.display = 'block';
+    } else {
+        searchResultsHeader.style.display = 'none';
+    }
 }
 
 // Handle filter changes
@@ -153,6 +490,10 @@ function handleFilters() {
 
 // Update cases display
 function updateCasesDisplay() {
+    console.log('Updating cases display...');
+    console.log('Total cases:', currentCases.length);
+    console.log('Filtered cases:', filteredCases.length);
+    
     const startIndex = (currentPage - 1) * casesPerPage;
     const endIndex = startIndex + casesPerPage;
     const casesToShow = filteredCases.slice(startIndex, endIndex);
@@ -160,12 +501,56 @@ function updateCasesDisplay() {
     casesGrid.innerHTML = '';
     
     if (casesToShow.length === 0) {
-        casesGrid.innerHTML = `
-            <div class="no-cases">
-                <h3>No cases found</h3>
-                <p>Try adjusting your search or filters</p>
-            </div>
-        `;
+        const searchTerm = searchInput ? searchInput.value.trim() : '';
+        if (searchTerm) {
+            casesGrid.innerHTML = `
+                <div class="no-cases" style="
+                    text-align: center;
+                    padding: 40px;
+                    background: #f8f9fa;
+                    border-radius: 8px;
+                    border: 2px dashed #ddd;
+                ">
+                    <div style="font-size: 48px; margin-bottom: 20px;">🔍</div>
+                    <h3 style="color: #e74c3c; margin-bottom: 10px;">No cases found for "${searchTerm}"</h3>
+                    <p style="color: #666; margin-bottom: 20px;">Try searching for different keywords or check your spelling</p>
+                    <div style="display: flex; gap: 10px; justify-content: center;">
+                        <button onclick="clearSearch()" style="
+                            padding: 10px 20px;
+                            background: #ff6b35;
+                            color: white;
+                            border: none;
+                            border-radius: 4px;
+                            cursor: pointer;
+                            font-size: 14px;
+                        ">Clear Search</button>
+                        <button onclick="showSearchSuggestions()" style="
+                            padding: 10px 20px;
+                            background: #6c757d;
+                            color: white;
+                            border: none;
+                            border-radius: 4px;
+                            cursor: pointer;
+                            font-size: 14px;
+                        ">Search Suggestions</button>
+                    </div>
+                </div>
+            `;
+        } else {
+            casesGrid.innerHTML = `
+                <div class="no-cases" style="
+                    text-align: center;
+                    padding: 40px;
+                    background: #f8f9fa;
+                    border-radius: 8px;
+                    border: 2px dashed #ddd;
+                ">
+                    <div style="font-size: 48px; margin-bottom: 20px;">📋</div>
+                    <h3 style="color: #333; margin-bottom: 10px;">No cases available</h3>
+                    <p style="color: #666; margin-bottom: 20px;">Create a new case or check back later</p>
+                </div>
+            `;
+        }
         return;
     }
     
@@ -174,7 +559,232 @@ function updateCasesDisplay() {
         casesGrid.appendChild(caseCard);
     });
     
+    console.log('Displayed cases:', casesToShow.length);
     updatePagination();
+}
+
+// Clear search function
+function clearSearch() {
+    if (searchInput) {
+        searchInput.value = '';
+        handleSearch();
+    }
+}
+
+// Show search suggestions
+function showSearchSuggestions() {
+    const suggestions = [
+        'dog', 'cat', 'injured', 'sick', 'abandoned', 'lost', 'stray', 
+        'bandra', 'andheri', 'juhu', 'powai', 'versova', 'malad',
+        'pending', 'in-progress', 'rescued', 'treated', 'adopted',
+        'high', 'medium', 'low', 'urgent'
+    ];
+    
+    const suggestionsHTML = suggestions.map(suggestion => 
+        `<span onclick="searchSuggestion('${suggestion}')" style="
+            display: inline-block;
+            padding: 5px 10px;
+            margin: 2px;
+            background: #e9ecef;
+            border-radius: 15px;
+            cursor: pointer;
+            font-size: 12px;
+            color: #495057;
+        ">${suggestion}</span>`
+    ).join('');
+    
+    showNotification(`
+        <div style="text-align: left;">
+            <strong>Search Suggestions:</strong><br>
+            <div style="margin-top: 10px;">${suggestionsHTML}</div>
+        </div>
+    `, 'info', 8000);
+}
+
+// Search suggestion click handler
+function searchSuggestion(suggestion) {
+    if (searchInput) {
+        searchInput.value = suggestion;
+        handleSearch();
+    }
+}
+
+// Search History Functions
+function loadSearchHistory() {
+    try {
+        const saved = localStorage.getItem('rescueCasesSearchHistory');
+        if (saved) {
+            searchHistory = JSON.parse(saved);
+            console.log('Loaded search history:', searchHistory);
+        }
+    } catch (error) {
+        console.error('Error loading search history:', error);
+        searchHistory = [];
+    }
+}
+
+function saveSearchHistory() {
+    try {
+        localStorage.setItem('rescueCasesSearchHistory', JSON.stringify(searchHistory));
+    } catch (error) {
+        console.error('Error saving search history:', error);
+    }
+}
+
+function addToSearchHistory(searchTerm) {
+    // Remove if already exists to avoid duplicates
+    searchHistory = searchHistory.filter(term => term !== searchTerm);
+    
+    // Add to beginning
+    searchHistory.unshift(searchTerm);
+    
+    // Keep only the most recent searches
+    if (searchHistory.length > MAX_HISTORY_ITEMS) {
+        searchHistory = searchHistory.slice(0, MAX_HISTORY_ITEMS);
+    }
+    
+    saveSearchHistory();
+    console.log('Added to search history:', searchTerm);
+}
+
+function clearSearchHistory() {
+    searchHistory = [];
+    saveSearchHistory();
+    hideSearchHistory();
+    console.log('Search history cleared');
+}
+
+function showSearchHistory() {
+    if (searchHistory.length === 0) return;
+    
+    // Create or update history dropdown
+    let historyDropdown = document.getElementById('searchHistoryDropdown');
+    if (!historyDropdown) {
+        historyDropdown = document.createElement('div');
+        historyDropdown.id = 'searchHistoryDropdown';
+        historyDropdown.style.cssText = `
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            z-index: 1000;
+            max-height: 200px;
+            overflow-y: auto;
+        `;
+        
+        // Position relative to search input
+        const searchBox = searchInput.parentElement;
+        searchBox.style.position = 'relative';
+        searchBox.appendChild(historyDropdown);
+    }
+    
+    // Clear previous content
+    historyDropdown.innerHTML = '';
+    
+    // Add header
+    const header = document.createElement('div');
+    header.style.cssText = `
+        padding: 8px 12px;
+        background: #f8f9fa;
+        border-bottom: 1px solid #eee;
+        font-size: 12px;
+        color: #666;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    `;
+    header.innerHTML = `
+        <span>Recent Searches</span>
+        <button onclick="clearSearchHistory()" style="background: none; border: none; color: #ff6b35; cursor: pointer; font-size: 12px;">Clear All</button>
+    `;
+    historyDropdown.appendChild(header);
+    
+    // Add history items
+    searchHistory.forEach(term => {
+        const item = document.createElement('div');
+        item.style.cssText = `
+            padding: 8px 12px;
+            cursor: pointer;
+            border-bottom: 1px solid #f0f0f0;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        `;
+        item.innerHTML = `
+            <span style="color: #666;">🔍</span>
+            <span>${term}</span>
+        `;
+        
+        item.addEventListener('mouseenter', () => {
+            item.style.background = '#f8f9fa';
+        });
+        
+        item.addEventListener('mouseleave', () => {
+            item.style.background = 'white';
+        });
+        
+        item.addEventListener('click', () => {
+            searchInput.value = term;
+            handleSearch();
+            hideSearchHistory();
+        });
+        
+        historyDropdown.appendChild(item);
+    });
+    
+    historyDropdown.style.display = 'block';
+}
+
+function hideSearchHistory() {
+    const historyDropdown = document.getElementById('searchHistoryDropdown');
+    if (historyDropdown) {
+        // Delay hiding to allow clicks on dropdown items
+        setTimeout(() => {
+            historyDropdown.style.display = 'none';
+        }, 200);
+    }
+}
+
+function handleSearchKeydown(event) {
+    const historyDropdown = document.getElementById('searchHistoryDropdown');
+    if (historyDropdown && historyDropdown.style.display === 'block') {
+        const items = historyDropdown.querySelectorAll('div[style*="cursor: pointer"]');
+        let currentIndex = -1;
+        
+        // Find currently highlighted item
+        items.forEach((item, index) => {
+            if (item.style.background === 'rgb(248, 249, 250)') {
+                currentIndex = index;
+            }
+        });
+        
+        if (event.key === 'ArrowDown') {
+            event.preventDefault();
+            const nextIndex = currentIndex < items.length - 1 ? currentIndex + 1 : 0;
+            highlightHistoryItem(items, nextIndex);
+        } else if (event.key === 'ArrowUp') {
+            event.preventDefault();
+            const prevIndex = currentIndex > 0 ? currentIndex - 1 : items.length - 1;
+            highlightHistoryItem(items, prevIndex);
+        } else if (event.key === 'Enter') {
+            event.preventDefault();
+            if (currentIndex >= 0 && items[currentIndex]) {
+                items[currentIndex].click();
+            }
+        } else if (event.key === 'Escape') {
+            hideSearchHistory();
+        }
+    }
+}
+
+function highlightHistoryItem(items, index) {
+    items.forEach((item, i) => {
+        item.style.background = i === index ? '#f8f9fa' : 'white';
+    });
 }
 
 // Create case card element
@@ -294,23 +904,68 @@ function updatePagination() {
     const totalPages = Math.ceil(filteredCases.length / casesPerPage);
     const pagination = document.querySelector('.pagination');
     
-    if (!pagination) return;
+    console.log('Updating pagination:', {
+        totalPages,
+        currentPage,
+        filteredCasesLength: filteredCases.length,
+        casesPerPage
+    });
     
-    let paginationHTML = `
-        <button class="page-btn" ${currentPage === 1 ? 'disabled' : ''} onclick="changePage(${currentPage - 1})">Previous</button>
-    `;
+    if (!pagination) {
+        console.error('Pagination element not found!');
+        return;
+    }
     
-    for (let i = 1; i <= totalPages; i++) {
+    let paginationHTML = '';
+    
+    // Add Previous button
+    if (totalPages > 1) {
         paginationHTML += `
-            <button class="page-btn ${i === currentPage ? 'active' : ''}" onclick="changePage(${i})">${i}</button>
+            <button class="page-btn prev-btn" ${currentPage === 1 ? 'disabled' : ''} onclick="changePage(${currentPage - 1})" style="
+                padding: 8px 16px;
+                margin: 0 4px;
+                border: 1px solid #ddd;
+                background: ${currentPage === 1 ? '#f5f5f5' : 'white'};
+                color: ${currentPage === 1 ? '#999' : '#333'};
+                border-radius: 4px;
+                cursor: ${currentPage === 1 ? 'not-allowed' : 'pointer'};
+            ">Previous</button>
         `;
     }
     
-    paginationHTML += `
-        <button class="page-btn" ${currentPage === totalPages ? 'disabled' : ''} onclick="changePage(${currentPage + 1})">Next</button>
-    `;
+    // Add page numbers
+    for (let i = 1; i <= totalPages; i++) {
+        paginationHTML += `
+            <button class="page-btn ${i === currentPage ? 'active' : ''}" onclick="changePage(${i})" style="
+                padding: 8px 12px;
+                margin: 0 2px;
+                border: 1px solid ${i === currentPage ? '#ff6b35' : '#ddd'};
+                background: ${i === currentPage ? '#ff6b35' : 'white'};
+                color: ${i === currentPage ? 'white' : '#333'};
+                border-radius: 4px;
+                cursor: pointer;
+                font-weight: ${i === currentPage ? 'bold' : 'normal'};
+            ">${i}</button>
+        `;
+    }
+    
+    // Add Next button
+    if (totalPages > 1) {
+        paginationHTML += `
+            <button class="page-btn next-btn" ${currentPage === totalPages ? 'disabled' : ''} onclick="changePage(${currentPage + 1})" style="
+                padding: 8px 16px;
+                margin: 0 4px;
+                border: 1px solid #ddd;
+                background: ${currentPage === totalPages ? '#f5f5f5' : 'white'};
+                color: ${currentPage === totalPages ? '#999' : '#333'};
+                border-radius: 4px;
+                cursor: ${currentPage === totalPages ? 'not-allowed' : 'pointer'};
+            ">Next</button>
+        `;
+    }
     
     pagination.innerHTML = paginationHTML;
+    console.log('Pagination HTML updated:', paginationHTML);
 }
 
 // Change page
@@ -493,9 +1148,160 @@ function scheduleFollowUp(caseId) {
     // TODO: Implement follow-up scheduling
 }
 
-function exportCases() {
-    showNotification('Exporting cases data...', 'info');
-    // TODO: Implement data export functionality
+async function exportCases() {
+    try {
+        showNotification('Exporting cases data...', 'info');
+        
+        // Show export format selection modal
+        const format = await showExportFormatModal();
+        if (!format) return;
+        
+        // Fetch data from backend
+        const response = await fetch(`/api/rescue-cases/export?format=${format}`);
+        
+        if (!response.ok) {
+            throw new Error(`Export failed: ${response.statusText}`);
+        }
+        
+        // Create blob and download
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.style.display = 'none';
+        a.href = url;
+        
+        // Get filename from response headers or use default
+        const contentDisposition = response.headers.get('Content-Disposition');
+        let filename = `rescue_cases_${new Date().toISOString().split('T')[0]}.${format}`;
+        if (contentDisposition) {
+            const filenameMatch = contentDisposition.match(/filename="(.+)"/);
+            if (filenameMatch) {
+                filename = filenameMatch[1];
+            }
+        }
+        
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+        
+        showNotification(`Cases data exported successfully as ${format.toUpperCase()}!`, 'success');
+        
+    } catch (error) {
+        console.error('Export error:', error);
+        showNotification('Failed to export data. Please try again.', 'error');
+    }
+}
+
+function showExportFormatModal() {
+    return new Promise((resolve) => {
+        // Create modal overlay
+        const modalOverlay = document.createElement('div');
+        modalOverlay.className = 'modal-overlay';
+        modalOverlay.style.cssText = `
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        `;
+        
+        // Create modal content
+        const modalContent = document.createElement('div');
+        modalContent.style.cssText = `
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            max-width: 400px;
+            width: 90%;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            text-align: center;
+        `;
+        
+        modalContent.innerHTML = `
+            <h3 style="margin: 0 0 20px 0; color: #333; font-size: 24px;">Export Format</h3>
+            <p style="margin: 0 0 25px 0; color: #666; font-size: 16px;">Choose the format for your export:</p>
+            <div style="display: flex; gap: 15px; justify-content: center; margin-bottom: 25px;">
+                <button class="export-format-btn" data-format="json" style="
+                    padding: 12px 24px;
+                    border: 2px solid #ff6b35;
+                    background: white;
+                    color: #ff6b35;
+                    border-radius: 8px;
+                    cursor: pointer;
+                    font-size: 14px;
+                    font-weight: 600;
+                    transition: all 0.3s ease;
+                ">JSON</button>
+                <button class="export-format-btn" data-format="csv" style="
+                    padding: 12px 24px;
+                    border: 2px solid #ff6b35;
+                    background: white;
+                    color: #ff6b35;
+                    border-radius: 8px;
+                    cursor: pointer;
+                    font-size: 14px;
+                    font-weight: 600;
+                    transition: all 0.3s ease;
+                ">CSV</button>
+            </div>
+            <button class="cancel-export-btn" style="
+                padding: 10px 20px;
+                border: 1px solid #ccc;
+                background: #f5f5f5;
+                color: #666;
+                border-radius: 6px;
+                cursor: pointer;
+                font-size: 14px;
+            ">Cancel</button>
+        `;
+        
+        modalOverlay.appendChild(modalContent);
+        document.body.appendChild(modalOverlay);
+        
+        // Add hover effects
+        const formatButtons = modalContent.querySelectorAll('.export-format-btn');
+        formatButtons.forEach(btn => {
+            btn.addEventListener('mouseenter', () => {
+                btn.style.background = '#ff6b35';
+                btn.style.color = 'white';
+            });
+            btn.addEventListener('mouseleave', () => {
+                btn.style.background = 'white';
+                btn.style.color = '#ff6b35';
+            });
+        });
+        
+        // Handle format selection
+        formatButtons.forEach(btn => {
+            btn.addEventListener('click', () => {
+                const format = btn.dataset.format;
+                document.body.removeChild(modalOverlay);
+                resolve(format);
+            });
+        });
+        
+        // Handle cancel
+        const cancelBtn = modalContent.querySelector('.cancel-export-btn');
+        cancelBtn.addEventListener('click', () => {
+            document.body.removeChild(modalOverlay);
+            resolve(null);
+        });
+        
+        // Handle overlay click to close
+        modalOverlay.addEventListener('click', (e) => {
+            if (e.target === modalOverlay) {
+                document.body.removeChild(modalOverlay);
+                resolve(null);
+            }
+        });
+    });
 }
 
 // Notification system

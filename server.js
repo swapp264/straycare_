@@ -360,6 +360,68 @@ app.get('/api/rescue-cases', async (req, res) => {
   }
 });
 
+// Export rescue cases data
+app.get('/api/rescue-cases/export', async (req, res) => {
+  try {
+    const { format = 'json' } = req.query;
+    const cases = await RescueCase.find().sort({ createdAt: -1 });
+    
+    if (format === 'csv') {
+      // Generate CSV data
+      const csvHeader = 'ID,Title,Description,Location,Reported By,Phone,Status,Priority,Assigned Volunteer,Created At\n';
+      const csvRows = cases.map(case_ => {
+        return [
+          case_._id,
+          `"${case_.title.replace(/"/g, '""')}"`,
+          `"${case_.description.replace(/"/g, '""')}"`,
+          `"${case_.location.replace(/"/g, '""')}"`,
+          `"${case_.reportedBy.replace(/"/g, '""')}"`,
+          case_.phone,
+          case_.status,
+          case_.priority,
+          `"${case_.assignedVolunteer || 'Not Assigned'}"`,
+          new Date(case_.createdAt).toISOString()
+        ].join(',');
+      }).join('\n');
+      
+      const csvData = csvHeader + csvRows;
+      
+      res.setHeader('Content-Type', 'text/csv');
+      res.setHeader('Content-Disposition', `attachment; filename="rescue_cases_${new Date().toISOString().split('T')[0]}.csv"`);
+      res.send(csvData);
+      
+    } else if (format === 'json') {
+      // Generate JSON data
+      const exportData = {
+        exportDate: new Date().toISOString(),
+        totalCases: cases.length,
+        cases: cases.map(case_ => ({
+          id: case_._id,
+          title: case_.title,
+          description: case_.description,
+          location: case_.location,
+          reportedBy: case_.reportedBy,
+          phone: case_.phone,
+          status: case_.status,
+          priority: case_.priority,
+          assignedVolunteer: case_.assignedVolunteer,
+          createdAt: case_.createdAt
+        }))
+      };
+      
+      res.setHeader('Content-Type', 'application/json');
+      res.setHeader('Content-Disposition', `attachment; filename="rescue_cases_${new Date().toISOString().split('T')[0]}.json"`);
+      res.json(exportData);
+      
+    } else {
+      res.status(400).json({ error: 'Invalid format. Supported formats: json, csv' });
+    }
+    
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to export rescue cases', details: error.message });
+  }
+});
+
 // Update rescue case (assign volunteer)
 app.patch('/api/rescue-cases/:id', async (req, res) => {
   try {
@@ -506,6 +568,76 @@ app.get('/api/volunteer-stats', async (req, res) => {
     console.error('Error fetching stats:', error);
     res.status(500).json({
       error: 'Failed to fetch statistics',
+      details: error.message
+    });
+  }
+});
+
+// Create sample rescue cases for testing
+app.post('/api/rescue-cases/sample', async (req, res) => {
+  try {
+    const sampleCases = [
+      {
+        title: 'Injured Dog - Bandra West',
+        description: 'Dog with injured leg, limping and unable to walk properly. Needs immediate medical attention.',
+        location: 'Bandra West, Mumbai',
+        reportedBy: 'Priya Sharma',
+        phone: '+91-9876543210',
+        status: 'pending',
+        priority: 'high'
+      },
+      {
+        title: 'Sick Cat - Andheri East',
+        description: 'Cat with respiratory infection, sneezing and difficulty breathing.',
+        location: 'Andheri East, Mumbai',
+        reportedBy: 'Amit Patel',
+        phone: '+91-9876543211',
+        status: 'in-progress',
+        priority: 'medium',
+        assignedVolunteer: 'Dr. Meera Singh'
+      },
+      {
+        title: 'Abandoned Puppies - Powai',
+        description: 'Three puppies found abandoned near Powai Lake. Appear to be 6-8 weeks old.',
+        location: 'Powai, Mumbai',
+        reportedBy: 'Rajesh Kumar',
+        phone: '+91-9876543212',
+        status: 'pending',
+        priority: 'high'
+      },
+      {
+        title: 'Elderly Dog - Juhu Beach',
+        description: 'Old dog found near Juhu Beach, appears malnourished and weak.',
+        location: 'Juhu Beach, Mumbai',
+        reportedBy: 'Sunita Mehta',
+        phone: '+91-9876543213',
+        status: 'in-progress',
+        priority: 'medium',
+        assignedVolunteer: 'Dr. Priya Singh'
+      },
+      {
+        title: 'Cat Stuck in Tree - Versova',
+        description: 'Cat has been stuck in a tree for 2 days. Fire department unable to help.',
+        location: 'Versova, Mumbai',
+        reportedBy: 'Neha Gupta',
+        phone: '+91-9876543214',
+        status: 'pending',
+        priority: 'urgent'
+      }
+    ];
+
+    const createdCases = await RescueCase.insertMany(sampleCases);
+    
+    res.json({
+      success: true,
+      message: 'Sample rescue cases created successfully',
+      cases: createdCases
+    });
+
+  } catch (error) {
+    console.error('Error creating sample cases:', error);
+    res.status(500).json({
+      error: 'Failed to create sample cases',
       details: error.message
     });
   }
