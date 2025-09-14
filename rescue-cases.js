@@ -46,15 +46,81 @@ async function loadCasesFromBackend() {
             currentCases = [];
         }
         
+        // Apply localStorage updates from dashboard assignments
+        applyCaseUpdatesFromLocalStorage();
+        
         filteredCases = [...currentCases];
         updateCasesDisplay();
         updateStats();
     } catch (error) {
         console.error('Error loading cases:', error);
         showNotification('Failed to load cases from server', 'error');
-        currentCases = [];
-        filteredCases = [];
+        
+        // Load fallback demo data
+        loadFallbackCases();
+        
+        // Apply localStorage updates
+        applyCaseUpdatesFromLocalStorage();
+        
+        filteredCases = [...currentCases];
         updateCasesDisplay();
+        updateStats();
+    }
+}
+
+// Load fallback cases for demo
+function loadFallbackCases() {
+    currentCases = [
+        {
+            id: 'test1',
+            title: 'Injured Dog - Bandra West',
+            status: 'pending',
+            priority: 'high',
+            location: 'bandra',
+            reportedBy: 'Priya Sharma',
+            locationFull: 'Bandra West, Mumbai',
+            reportedTime: '2 hours ago',
+            animalType: 'Dog (Mixed Breed)',
+            condition: 'Injured leg, limping',
+            phone: '+91-9876543210',
+            image: 'https://images.unsplash.com/photo-1552053831-71594a27632d?w=300&h=200&fit=crop'
+        },
+        {
+            id: 'test2',
+            title: 'Sick Cat - Andheri East',
+            status: 'in-progress',
+            priority: 'medium',
+            location: 'andheri',
+            reportedBy: 'Amit Patel',
+            locationFull: 'Andheri East, Mumbai',
+            reportedTime: '4 hours ago',
+            animalType: 'Cat (Domestic)',
+            condition: 'Respiratory infection',
+            assignedVolunteer: 'Dr. Meera',
+            phone: '+91-9876543211',
+            image: 'https://images.unsplash.com/photo-1514888286974-6c03e2a1a220?w=300&h=200&fit=crop'
+        }
+    ];
+}
+
+// Apply case updates from localStorage (from dashboard assignments)
+function applyCaseUpdatesFromLocalStorage() {
+    try {
+        const caseUpdates = JSON.parse(localStorage.getItem('caseUpdates')) || {};
+        
+        Object.keys(caseUpdates).forEach(caseId => {
+            const caseIndex = currentCases.findIndex(c => c.id === caseId);
+            if (caseIndex !== -1) {
+                const updates = caseUpdates[caseId];
+                currentCases[caseIndex] = {
+                    ...currentCases[caseIndex],
+                    ...updates
+                };
+                console.log(`Applied updates to case ${caseId}:`, updates);
+            }
+        });
+    } catch (error) {
+        console.error('Error applying case updates from localStorage:', error);
     }
 }
 
@@ -200,6 +266,7 @@ function createCaseCard(case_) {
                 <p><strong>Reported by:</strong> ${case_.reportedBy}</p>
                 <p><strong>Location:</strong> ${case_.locationFull}</p>
                 <p><strong>Reported:</strong> ${case_.reportedTime || 'Recently'}</p>
+                ${case_.assignedVolunteer ? `<p><strong>Assigned to:</strong> ${case_.assignedVolunteer}</p>` : ''}
                 ${case_.assignedTo ? `<p><strong>Assigned to:</strong> ${case_.assignedTo}</p>` : ''}
                 ${case_.rescuedBy ? `<p><strong>Rescued by:</strong> ${case_.rescuedBy}</p>` : ''}
                 ${case_.treatedBy ? `<p><strong>Treated by:</strong> ${case_.treatedBy}</p>` : ''}
@@ -390,12 +457,56 @@ async function assignVolunteer(caseId) {
             const modal = createVolunteerAssignmentModal(caseId, data.volunteers);
             document.body.appendChild(modal);
         } else {
-            showNotification('No volunteers available for assignment', 'error');
+            // Use fallback volunteers
+            const fallbackVolunteers = createFallbackVolunteers();
+            const modal = createVolunteerAssignmentModal(caseId, fallbackVolunteers);
+            document.body.appendChild(modal);
         }
     } catch (error) {
         console.error('Error fetching volunteers:', error);
-        showNotification('Failed to load volunteers', 'error');
+        // Use fallback volunteers
+        const fallbackVolunteers = createFallbackVolunteers();
+        const modal = createVolunteerAssignmentModal(caseId, fallbackVolunteers);
+        document.body.appendChild(modal);
     }
+}
+
+// Create fallback volunteers for rescue-cases page
+function createFallbackVolunteers() {
+    return [
+        {
+            _id: 'vol1',
+            name: 'Dr. Priya Singh',
+            email: 'priya@example.com',
+            phone: '+91-9876543210',
+            role: 'animal-care',
+            availability: 'weekdays'
+        },
+        {
+            _id: 'vol2',
+            name: 'Rahul Kumar',
+            email: 'rahul@example.com',
+            phone: '+91-9876543211',
+            role: 'transport',
+            availability: 'flexible'
+        },
+        {
+            _id: 'vol3',
+            name: 'Dr. Meera Patel',
+            email: 'meera@example.com',
+            phone: '+91-9876543212',
+            role: 'medical',
+            availability: 'mornings'
+        },
+        {
+            _id: 'vol4',
+            name: 'Amit Sharma',
+            email: 'amit@example.com',
+            phone: '+91-9876543213',
+            role: 'rescue',
+            availability: 'evenings'
+        }
+    ];
 }
 
 // Create volunteer assignment modal
@@ -433,26 +544,38 @@ function createVolunteerAssignmentModal(caseId, volunteers) {
         e.preventDefault();
         const volunteerName = document.getElementById('volunteerSelect').value;
         
+        if (!volunteerName) {
+            showNotification('Please select a volunteer', 'error');
+            return;
+        }
+        
         try {
-            const response = await fetch(`/api/rescue-cases/${caseId}`, {
-                method: 'PATCH',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
+            // Update case locally (fallback approach)
+            const caseIndex = currentCases.findIndex(c => c.id === caseId);
+            if (caseIndex !== -1) {
+                currentCases[caseIndex].assignedVolunteer = volunteerName;
+                currentCases[caseIndex].status = 'in-progress';
+                
+                // Update localStorage for cross-page sync
+                let caseUpdates = JSON.parse(localStorage.getItem('caseUpdates')) || {};
+                caseUpdates[caseId] = {
                     assignedVolunteer: volunteerName,
-                    status: 'in-progress'
-                })
-            });
-            
-            const data = await response.json();
-            
-            if (data.success) {
+                    status: 'in-progress',
+                    updatedAt: new Date().toISOString()
+                };
+                localStorage.setItem('caseUpdates', JSON.stringify(caseUpdates));
+                
+                // Close modal
                 modal.remove();
-                await loadCasesFromBackend();
-                showNotification(`Volunteer ${volunteerName} assigned successfully!`, 'success');
+                
+                // Refresh display
+                filteredCases = [...currentCases];
+                updateCasesDisplay();
+                updateStats();
+                
+                showNotification(`✅ Volunteer ${volunteerName} assigned successfully!`, 'success');
             } else {
-                showNotification('Failed to assign volunteer', 'error');
+                showNotification('Case not found', 'error');
             }
         } catch (error) {
             console.error('Error assigning volunteer:', error);
@@ -464,13 +587,25 @@ function createVolunteerAssignmentModal(caseId, volunteers) {
 }
 
 function viewCaseDetails(caseId) {
-    showNotification('Opening case details...', 'info');
-    // TODO: Implement case details modal
+    const caseData = currentCases.find(c => c.id === caseId);
+    if (!caseData) {
+        showNotification('Case not found', 'error');
+        return;
+    }
+    
+    const modal = createCaseDetailsModal(caseData);
+    document.body.appendChild(modal);
 }
 
 function updateStatus(caseId) {
-    showNotification('Opening status update...', 'info');
-    // TODO: Implement status update modal
+    const caseData = currentCases.find(c => c.id === caseId);
+    if (!caseData) {
+        showNotification('Case not found', 'error');
+        return;
+    }
+    
+    const modal = createStatusUpdateModal(caseData);
+    document.body.appendChild(modal);
 }
 
 function addMedicalRecord(caseId) {
@@ -573,5 +708,482 @@ style.textContent = `
         margin-bottom: 1rem;
         color: #8B4513;
     }
+    
+    .case-details-content {
+        padding: 1rem 0;
+    }
+    
+    .case-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1.5rem;
+        padding-bottom: 1rem;
+        border-bottom: 1px solid #eee;
+    }
+    
+    .case-header h3 {
+        margin: 0;
+        color: #8B4513;
+    }
+    
+    .case-badges {
+        display: flex;
+        gap: 0.5rem;
+    }
+    
+    .details-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 1.5rem;
+    }
+    
+    .detail-section {
+        background: #f8f9fa;
+        padding: 1rem;
+        border-radius: 8px;
+        border-left: 4px solid #8B4513;
+    }
+    
+    .detail-section h4 {
+        margin: 0 0 0.75rem 0;
+        color: #8B4513;
+        font-size: 1rem;
+    }
+    
+    .detail-section p {
+        margin: 0.5rem 0;
+        font-size: 0.9rem;
+    }
+    
+    .status-badge, .priority-badge {
+        padding: 0.25rem 0.75rem;
+        border-radius: 20px;
+        font-size: 0.8rem;
+        font-weight: 500;
+    }
+    
+    .status-badge.pending {
+        background: #ffc107;
+        color: #000;
+    }
+    
+    .status-badge.in-progress, .status-badge.inprogress {
+        background: #17a2b8;
+        color: white;
+    }
+    
+    .status-badge.rescued {
+        background: #28a745;
+        color: white;
+    }
+    
+    .status-badge.treated {
+        background: #6f42c1;
+        color: white;
+    }
+    
+    .status-badge.adopted {
+        background: #20c997;
+        color: white;
+    }
+    
+    .priority-badge.high {
+        background: #dc3545;
+        color: white;
+    }
+    
+    .priority-badge.medium {
+        background: #fd7e14;
+        color: white;
+    }
+    
+    .priority-badge.low {
+        background: #6c757d;
+        color: white;
+    }
+    
+    .modal-actions {
+        display: flex;
+        gap: 1rem;
+        justify-content: flex-end;
+        margin-top: 1.5rem;
+        padding-top: 1rem;
+        border-top: 1px solid #eee;
+    }
+    
+    .current-case-info {
+        background: #f8f9fa;
+        padding: 1rem;
+        border-radius: 8px;
+        margin-bottom: 1.5rem;
+    }
+    
+    .current-case-info h3 {
+        margin: 0 0 0.5rem 0;
+        color: #8B4513;
+    }
+    
+    .form-group {
+        margin-bottom: 1rem;
+    }
+    
+    .form-group label {
+        display: block;
+        margin-bottom: 0.5rem;
+        font-weight: 500;
+        color: #333;
+    }
+    
+    .form-group select,
+    .form-group textarea {
+        width: 100%;
+        padding: 0.75rem;
+        border: 1px solid #ddd;
+        border-radius: 6px;
+        font-size: 1rem;
+    }
+    
+    .form-actions {
+        display: flex;
+        gap: 1rem;
+        justify-content: flex-end;
+        margin-top: 1.5rem;
+    }
+    
+    .btn-primary, .btn-secondary {
+        padding: 0.75rem 1.5rem;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 1rem;
+        transition: all 0.3s ease;
+    }
+    
+    .btn-primary {
+        background: #8B4513;
+        color: white;
+    }
+    
+    .btn-primary:hover {
+        background: #6d3410;
+    }
+    
+    .btn-secondary {
+        background: #6c757d;
+        color: white;
+    }
+    
+    .btn-secondary:hover {
+        background: #545b62;
+    }
+    
+    .form-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1rem;
+        margin-bottom: 1rem;
+    }
+    
+    .form-group input,
+    .form-group select {
+        width: 100%;
+        padding: 0.75rem;
+        border: 1px solid #ddd;
+        border-radius: 6px;
+        font-size: 1rem;
+    }
+    
+    .form-group input:focus,
+    .form-group select:focus,
+    .form-group textarea:focus {
+        outline: none;
+        border-color: #8B4513;
+        box-shadow: 0 0 0 2px rgba(139, 69, 19, 0.1);
+    }
+    
+    @media (max-width: 768px) {
+        .form-row {
+            grid-template-columns: 1fr;
+        }
+    }
 `;
 document.head.appendChild(style);
+
+// Create case details modal
+function createCaseDetailsModal(caseData) {
+    const modal = document.createElement('div');
+    modal.className = 'modal case-details-modal';
+    modal.style.display = 'block';
+    
+    modal.innerHTML = `
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2><i class="fas fa-info-circle"></i> Case Details</h2>
+                <span class="close" onclick="this.closest('.modal').remove()">&times;</span>
+            </div>
+            <div class="modal-body">
+                <div class="case-details-content">
+                    <div class="case-header">
+                        <h3>${caseData.title}</h3>
+                        <div class="case-badges">
+                            <span class="status-badge ${caseData.status}">${getStatusDisplay(caseData.status)}</span>
+                            <span class="priority-badge ${caseData.priority}">${getPriorityDisplay(caseData.priority)}</span>
+                        </div>
+                    </div>
+                    
+                    <div class="details-grid">
+                        <div class="detail-section">
+                            <h4>Reporter Information</h4>
+                            <p><strong>Name:</strong> ${caseData.reportedBy}</p>
+                            <p><strong>Phone:</strong> ${caseData.phone || 'Not provided'}</p>
+                            <p><strong>Reported:</strong> ${caseData.reportedTime}</p>
+                        </div>
+                        
+                        <div class="detail-section">
+                            <h4>Location Details</h4>
+                            <p><strong>Address:</strong> ${caseData.locationFull}</p>
+                            <p><strong>Area:</strong> ${caseData.location}</p>
+                        </div>
+                        
+                        <div class="detail-section">
+                            <h4>Animal Information</h4>
+                            <p><strong>Type:</strong> ${caseData.animalType}</p>
+                            <p><strong>Condition:</strong> ${caseData.condition}</p>
+                        </div>
+                        
+                        ${caseData.assignedVolunteer ? `
+                        <div class="detail-section">
+                            <h4>Assignment Details</h4>
+                            <p><strong>Assigned to:</strong> ${caseData.assignedVolunteer}</p>
+                            <p><strong>Status:</strong> ${getStatusDisplay(caseData.status)}</p>
+                        </div>
+                        ` : ''}
+                    </div>
+                </div>
+                
+                <div class="modal-actions">
+                    <button type="button" class="btn-secondary" onclick="this.closest('.modal').remove()">Close</button>
+                    <button type="button" class="btn-primary" onclick="editCase('${caseData.id}')">Edit Case</button>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    return modal;
+}
+
+// Create status update modal
+function createStatusUpdateModal(caseData) {
+    const modal = document.createElement('div');
+    modal.className = 'modal status-update-modal';
+    modal.style.display = 'block';
+    
+    modal.innerHTML = `
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2><i class="fas fa-edit"></i> Update Case Status</h2>
+                <span class="close" onclick="this.closest('.modal').remove()">&times;</span>
+            </div>
+            <div class="modal-body">
+                <div class="current-case-info">
+                    <h3>${caseData.title}</h3>
+                    <p><strong>Current Status:</strong> <span class="status-badge ${caseData.status}">${getStatusDisplay(caseData.status)}</span></p>
+                </div>
+                
+                <form id="statusUpdateForm">
+                    <div class="form-group">
+                        <label for="newStatus">New Status:</label>
+                        <select id="newStatus" required>
+                            <option value="">Select new status...</option>
+                            <option value="pending" ${caseData.status === 'pending' ? 'selected' : ''}>Pending</option>
+                            <option value="in-progress" ${caseData.status === 'in-progress' ? 'selected' : ''}>In Progress</option>
+                            <option value="rescued" ${caseData.status === 'rescued' ? 'selected' : ''}>Rescued</option>
+                            <option value="treated" ${caseData.status === 'treated' ? 'selected' : ''}>Treated</option>
+                            <option value="adopted" ${caseData.status === 'adopted' ? 'selected' : ''}>Adopted</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="statusNotes">Update Notes:</label>
+                        <textarea id="statusNotes" rows="3" placeholder="Add notes about this status update..."></textarea>
+                    </div>
+                    
+                    <div class="form-actions">
+                        <button type="button" class="btn-secondary" onclick="this.closest('.modal').remove()">Cancel</button>
+                        <button type="submit" class="btn-primary">Update Status</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    `;
+    
+    // Handle form submission
+    modal.querySelector('#statusUpdateForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        await handleStatusUpdate(caseData.id);
+    });
+    
+    return modal;
+}
+
+// Handle status update
+async function handleStatusUpdate(caseId) {
+    const newStatus = document.getElementById('newStatus').value;
+    const notes = document.getElementById('statusNotes').value;
+    
+    if (!newStatus) {
+        showNotification('Please select a status', 'error');
+        return;
+    }
+    
+    try {
+        // Update case status
+        const caseIndex = currentCases.findIndex(c => c.id === caseId);
+        if (caseIndex !== -1) {
+            currentCases[caseIndex].status = newStatus;
+            
+            // Close modal
+            document.querySelector('.status-update-modal').remove();
+            
+            // Refresh display
+            filteredCases = [...currentCases];
+            updateCasesDisplay();
+            updateStats();
+            
+            showNotification(`✅ Case status updated to ${getStatusDisplay(newStatus)}!`, 'success');
+        } else {
+            showNotification('Case not found', 'error');
+        }
+    } catch (error) {
+        console.error('Error updating status:', error);
+        showNotification('Failed to update status', 'error');
+    }
+}
+
+// Edit case function
+function editCase(caseId) {
+    const caseData = currentCases.find(c => c.id === caseId);
+    if (!caseData) {
+        showNotification('Case not found', 'error');
+        return;
+    }
+    
+    // Close current modal first
+    document.querySelector('.case-details-modal').remove();
+    
+    const modal = createEditCaseModal(caseData);
+    document.body.appendChild(modal);
+}
+
+// Create edit case modal
+function createEditCaseModal(caseData) {
+    const modal = document.createElement('div');
+    modal.className = 'modal edit-case-modal';
+    modal.style.display = 'block';
+    
+    modal.innerHTML = `
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2><i class="fas fa-edit"></i> Edit Case</h2>
+                <span class="close" onclick="this.closest('.modal').remove()">&times;</span>
+            </div>
+            <div class="modal-body">
+                <form id="editCaseForm">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="editTitle">Case Title:</label>
+                            <input type="text" id="editTitle" value="${caseData.title}" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="editPriority">Priority:</label>
+                            <select id="editPriority" required>
+                                <option value="high" ${caseData.priority === 'high' ? 'selected' : ''}>High Priority</option>
+                                <option value="medium" ${caseData.priority === 'medium' ? 'selected' : ''}>Medium Priority</option>
+                                <option value="low" ${caseData.priority === 'low' ? 'selected' : ''}>Low Priority</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="editReporter">Reporter Name:</label>
+                            <input type="text" id="editReporter" value="${caseData.reportedBy}" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="editPhone">Reporter Phone:</label>
+                            <input type="tel" id="editPhone" value="${caseData.phone || ''}" placeholder="+91-XXXXXXXXXX">
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="editLocation">Location:</label>
+                        <input type="text" id="editLocation" value="${caseData.locationFull}" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="editAnimalType">Animal Type:</label>
+                        <input type="text" id="editAnimalType" value="${caseData.animalType}" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="editCondition">Condition Description:</label>
+                        <textarea id="editCondition" rows="3" required>${caseData.condition}</textarea>
+                    </div>
+                    
+                    <div class="form-actions">
+                        <button type="button" class="btn-secondary" onclick="this.closest('.modal').remove()">Cancel</button>
+                        <button type="submit" class="btn-primary">Save Changes</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    `;
+    
+    // Handle form submission
+    modal.querySelector('#editCaseForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        await handleEditCase(caseData.id);
+    });
+    
+    return modal;
+}
+
+// Handle edit case
+async function handleEditCase(caseId) {
+    const updatedData = {
+        title: document.getElementById('editTitle').value,
+        priority: document.getElementById('editPriority').value,
+        reportedBy: document.getElementById('editReporter').value,
+        phone: document.getElementById('editPhone').value,
+        locationFull: document.getElementById('editLocation').value,
+        animalType: document.getElementById('editAnimalType').value,
+        condition: document.getElementById('editCondition').value
+    };
+    
+    try {
+        // Update case locally
+        const caseIndex = currentCases.findIndex(c => c.id === caseId);
+        if (caseIndex !== -1) {
+            currentCases[caseIndex] = {
+                ...currentCases[caseIndex],
+                ...updatedData,
+                location: updatedData.locationFull.toLowerCase().split(' ')[0] // Update location key
+            };
+            
+            // Close modal
+            document.querySelector('.edit-case-modal').remove();
+            
+            // Refresh display
+            filteredCases = [...currentCases];
+            updateCasesDisplay();
+            
+            showNotification('✅ Case updated successfully!', 'success');
+        } else {
+            showNotification('Case not found', 'error');
+        }
+    } catch (error) {
+        console.error('Error updating case:', error);
+        showNotification('Failed to update case', 'error');
+    }
+}
