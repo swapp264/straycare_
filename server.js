@@ -511,6 +511,234 @@ app.get('/api/volunteer-stats', async (req, res) => {
   }
 });
 
+// Volunteer Slots Schema
+const volunteerSlotSchema = new mongoose.Schema({
+  title: { type: String, required: true },
+  type: { 
+    type: String, 
+    required: true,
+    enum: ['feeding', 'medical', 'cleaning', 'transport', 'adoption', 'fundraising']
+  },
+  date: { type: Date, required: true },
+  startTime: { type: String, required: true },
+  duration: { type: Number, required: true },
+  maxVolunteers: { type: Number, default: 1 },
+  location: { type: String, required: true },
+  description: { type: String },
+  status: { 
+    type: String, 
+    enum: ['pending', 'in-progress', 'completed', 'cancelled'], 
+    default: 'pending' 
+  },
+  assignedVolunteers: [{
+    volunteerId: { type: mongoose.Schema.Types.ObjectId, ref: 'Volunteer' },
+    name: { type: String, required: true },
+    phone: { type: String, required: true },
+    email: { type: String, required: true }
+  }],
+  notes: { type: String },
+  rescheduleReason: { type: String },
+  createdAt: { type: Date, default: Date.now }
+});
+
+const VolunteerSlot = mongoose.model('VolunteerSlot', volunteerSlotSchema);
+
+// Volunteer Slots API Routes
+
+// Create new volunteer slot
+app.post('/api/volunteer-slots', async (req, res) => {
+  try {
+    const newSlot = new VolunteerSlot(req.body);
+    const savedSlot = await newSlot.save();
+    res.status(201).json({ success: true, slot: savedSlot });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to create volunteer slot', details: error.message });
+  }
+});
+
+// Get all volunteer slots
+app.get('/api/volunteer-slots', async (req, res) => {
+  try {
+    const { date, status, type } = req.query;
+    let filter = {};
+    
+    if (date) filter.date = new Date(date);
+    if (status) filter.status = status;
+    if (type) filter.type = type;
+    
+    const slots = await VolunteerSlot.find(filter)
+      .populate('assignedVolunteers.volunteerId', 'name email phone role')
+      .sort({ date: 1, startTime: 1 });
+    
+    res.json({ success: true, slots });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to fetch volunteer slots', details: error.message });
+  }
+});
+
+// Get today's volunteer slots
+app.get('/api/volunteer-slots/today', async (req, res) => {
+  try {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    
+    const slots = await VolunteerSlot.find({
+      date: {
+        $gte: today,
+        $lt: tomorrow
+      }
+    })
+    .populate('assignedVolunteers.volunteerId', 'name email phone role')
+    .sort({ startTime: 1 });
+    
+    res.json({ success: true, slots });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to fetch today\'s slots', details: error.message });
+  }
+});
+
+// Update volunteer slot
+app.patch('/api/volunteer-slots/:id', async (req, res) => {
+  try {
+    const updatedSlot = await VolunteerSlot.findByIdAndUpdate(
+      req.params.id, 
+      req.body, 
+      { new: true }
+    ).populate('assignedVolunteers.volunteerId', 'name email phone role');
+    
+    if (!updatedSlot) {
+      return res.status(404).json({ error: 'Volunteer slot not found' });
+    }
+    
+    res.json({ success: true, slot: updatedSlot });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to update volunteer slot', details: error.message });
+  }
+});
+
+// Assign volunteer to slot
+app.post('/api/volunteer-slots/:id/assign', async (req, res) => {
+  try {
+    const { volunteerId } = req.body;
+    const volunteer = await Volunteer.findById(volunteerId);
+    
+    if (!volunteer) {
+      return res.status(404).json({ error: 'Volunteer not found' });
+    }
+    
+    const slot = await VolunteerSlot.findById(req.params.id);
+    if (!slot) {
+      return res.status(404).json({ error: 'Volunteer slot not found' });
+    }
+    
+    if (slot.assignedVolunteers.length >= slot.maxVolunteers) {
+      return res.status(400).json({ error: 'Slot is already full' });
+    }
+    
+    // Check if volunteer is already assigned
+    const alreadyAssigned = slot.assignedVolunteers.some(av => av.volunteerId.toString() === volunteerId);
+    if (alreadyAssigned) {
+      return res.status(400).json({ error: 'Volunteer is already assigned to this slot' });
+    }
+    
+    slot.assignedVolunteers.push({
+      volunteerId: volunteer._id,
+      name: volunteer.name,
+      phone: volunteer.phone,
+      email: volunteer.email
+    });
+    
+    await slot.save();
+    
+    res.json({ success: true, slot });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to assign volunteer', details: error.message });
+  }
+});
+
+// Remove volunteer from slot
+app.delete('/api/volunteer-slots/:id/volunteers/:volunteerId', async (req, res) => {
+  try {
+    const slot = await VolunteerSlot.findById(req.params.id);
+    if (!slot) {
+      return res.status(404).json({ error: 'Volunteer slot not found' });
+    }
+    
+    slot.assignedVolunteers = slot.assignedVolunteers.filter(
+      av => av.volunteerId.toString() !== req.params.volunteerId
+    );
+    
+    await slot.save();
+    
+    res.json({ success: true, slot });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to remove volunteer', details: error.message });
+  }
+});
+
+// Delete volunteer slot
+app.delete('/api/volunteer-slots/:id', async (req, res) => {
+  try {
+    const deletedSlot = await VolunteerSlot.findByIdAndDelete(req.params.id);
+    
+    if (!deletedSlot) {
+      return res.status(404).json({ error: 'Volunteer slot not found' });
+    }
+    
+    res.json({ success: true, message: 'Volunteer slot deleted successfully' });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to delete volunteer slot', details: error.message });
+  }
+});
+
+// Export schedule as CSV
+app.get('/api/volunteer-slots/export', async (req, res) => {
+  try {
+    const { startDate, endDate } = req.query;
+    let filter = {};
+    
+    if (startDate && endDate) {
+      filter.date = {
+        $gte: new Date(startDate),
+        $lte: new Date(endDate)
+      };
+    }
+    
+    const slots = await VolunteerSlot.find(filter)
+      .populate('assignedVolunteers.volunteerId', 'name email phone')
+      .sort({ date: 1, startTime: 1 });
+    
+    // Convert to CSV format
+    const csvData = slots.map(slot => ({
+      Title: slot.title,
+      Type: slot.type,
+      Date: slot.date.toISOString().split('T')[0],
+      Time: slot.startTime,
+      Duration: `${slot.duration} hours`,
+      Location: slot.location,
+      Status: slot.status,
+      Volunteers: slot.assignedVolunteers.map(v => v.name).join(', ') || 'Unassigned',
+      Description: slot.description || ''
+    }));
+    
+    // Convert to CSV string
+    const headers = Object.keys(csvData[0] || {});
+    const csvContent = [
+      headers.join(','),
+      ...csvData.map(row => headers.map(header => `"${row[header]}"`).join(','))
+    ].join('\n');
+    
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Disposition', 'attachment; filename=volunteer-schedule.csv');
+    res.send(csvContent);
+    
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to export schedule', details: error.message });
+  }
+});
+
 // Serve static files
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'index.html'));

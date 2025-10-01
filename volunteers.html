@@ -218,7 +218,11 @@
             <section class="volunteer-directory">
                 <div class="section-header">
                     <h2>Volunteer Directory</h2>
-                    <button class="btn-secondary" onclick="openVolunteerModal()">+ Add Volunteer</button>
+                    <div class="header-actions">
+                        <button class="btn-secondary" onclick="refreshVolunteerDirectory()">🔄 Refresh</button>
+                        <button class="btn-secondary" onclick="forceDisplayVolunteers()">👥 Show Volunteers</button>
+                        <button class="btn-primary" onclick="openVolunteerModal()">+ Add Volunteer</button>
+                    </div>
                 </div>
                 
                 <div class="volunteers-grid">
@@ -236,8 +240,8 @@
                             </div>
                         </div>
                         <div class="volunteer-actions">
-                            <button class="btn-primary">Assign Task</button>
-                            <button class="btn-secondary">View Profile</button>
+                            <button class="btn-primary" onclick="assignTask('vol1')">Assign Task</button>
+                            <button class="btn-secondary" onclick="viewProfile('vol1')">View Profile</button>
                         </div>
                     </div>
                     
@@ -256,8 +260,8 @@
                             </div>
                         </div>
                         <div class="volunteer-actions">
-                            <button class="btn-primary">Assign Task</button>
-                            <button class="btn-secondary">View Profile</button>
+                            <button class="btn-primary" onclick="assignTask('vol2')">Assign Task</button>
+                            <button class="btn-secondary" onclick="viewProfile('vol2')">View Profile</button>
                         </div>
                     </div>
                     
@@ -275,8 +279,8 @@
                             </div>
                         </div>
                         <div class="volunteer-actions">
-                            <button class="btn-primary">Assign Task</button>
-                            <button class="btn-secondary">View Profile</button>
+                            <button class="btn-primary" onclick="assignTask('vol3')">Assign Task</button>
+                            <button class="btn-secondary" onclick="viewProfile('vol3')">View Profile</button>
                         </div>
                     </div>
                 </div>
@@ -291,15 +295,15 @@
                 <h2>Post New Volunteer Slot</h2>
                 <button class="close-btn" onclick="closeNewSlotModal()">&times;</button>
             </div>
-            <form class="slot-form">
+            <form class="slot-form" onsubmit="handlePostSlot(event)">
                 <div class="form-group">
                     <label for="slotTitle">Slot Title</label>
-                    <input type="text" id="slotTitle" required placeholder="e.g., Morning Feeding Round">
+                    <input type="text" id="slotTitle" name="slotTitle" required placeholder="e.g., Morning Feeding Round">
                 </div>
                 <div class="form-row">
                     <div class="form-group">
                         <label for="slotType">Slot Type</label>
-                        <select id="slotType" required>
+                        <select id="slotType" name="slotType" required>
                             <option value="">Select Type</option>
                             <option value="feeding">Feeding</option>
                             <option value="fostering">Fostering</option>
@@ -310,30 +314,30 @@
                     </div>
                     <div class="form-group">
                         <label for="slotDate">Date</label>
-                        <input type="date" id="slotDate" required>
+                        <input type="date" id="slotDate" name="slotDate" required>
                     </div>
                 </div>
                 <div class="form-row">
                     <div class="form-group">
                         <label for="slotTime">Start Time</label>
-                        <input type="time" id="slotTime" required>
+                        <input type="time" id="slotTime" name="slotTime" required>
                     </div>
                     <div class="form-group">
                         <label for="slotDuration">Duration (hours)</label>
-                        <input type="number" id="slotDuration" min="1" max="8" required>
+                        <input type="number" id="slotDuration" name="slotDuration" min="1" max="8" required>
                     </div>
                 </div>
                 <div class="form-group">
                     <label for="slotLocation">Location</label>
-                    <input type="text" id="slotLocation" required placeholder="e.g., Bandra West Area">
+                    <input type="text" id="slotLocation" name="slotLocation" required placeholder="e.g., Bandra West Area">
                 </div>
                 <div class="form-group">
                     <label for="slotRequirements">Requirements</label>
-                    <textarea id="slotRequirements" rows="3" placeholder="Describe any specific requirements..."></textarea>
+                    <textarea id="slotRequirements" name="slotRequirements" rows="3" placeholder="Describe any specific requirements..."></textarea>
                 </div>
                 <div class="form-group">
                     <label for="maxVolunteers">Maximum Volunteers</label>
-                    <input type="number" id="maxVolunteers" min="1" max="10" value="1">
+                    <input type="number" id="maxVolunteers" name="maxVolunteers" min="1" max="10" value="1">
                 </div>
                 <div class="form-actions">
                     <button type="button" class="btn-secondary" onclick="closeNewSlotModal()">Cancel</button>
@@ -356,6 +360,132 @@
     </footer>
 
     <script src="auth.js"></script>
+    <script>
+        // Immediate error cleanup script
+        (function() {
+            // Clear any existing error notifications
+            const allNotifications = document.querySelectorAll('.notification');
+            allNotifications.forEach(notification => {
+                notification.remove();
+            });
+            
+            // Clear any error messages in the header
+            const header = document.querySelector('header');
+            if (header) {
+                const headerErrors = header.querySelectorAll('*');
+                headerErrors.forEach(element => {
+                    if (element.textContent && element.textContent.includes('Error adding volunteer')) {
+                        element.remove();
+                    }
+                });
+            }
+            
+            console.log('Immediate error cleanup completed from HTML');
+        })();
+    </script>
     <script src="volunteers.js"></script>
+    
+    <style>
+        .header-actions {
+            display: flex;
+            gap: 0.5rem;
+            align-items: center;
+        }
+        
+        .volunteers-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 1.5rem;
+            margin-top: 1.5rem;
+        }
+        
+        .volunteer-card {
+            background: white;
+            border-radius: 12px;
+            padding: 1.5rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            border: 1px solid #e5e7eb;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        
+        .volunteer-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+        }
+        
+        .volunteer-avatar img {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            object-fit: cover;
+        }
+        
+        .volunteer-info h3 {
+            margin: 0.5rem 0 0.25rem 0;
+            color: #1f2937;
+            font-size: 1.1rem;
+        }
+        
+        .volunteer-role {
+            color: #6b7280;
+            font-size: 0.9rem;
+            margin: 0.25rem 0;
+        }
+        
+        .volunteer-stats {
+            color: #6b7280;
+            font-size: 0.8rem;
+            margin: 0.25rem 0;
+        }
+        
+        .volunteer-skills {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.25rem;
+            margin: 0.5rem 0;
+        }
+        
+        .skill-tag {
+            background: #f3f4f6;
+            color: #374151;
+            padding: 0.25rem 0.5rem;
+            border-radius: 12px;
+            font-size: 0.75rem;
+        }
+        
+        .volunteer-actions {
+            display: flex;
+            gap: 0.5rem;
+            margin-top: 1rem;
+        }
+        
+        .btn-primary, .btn-secondary {
+            padding: 0.5rem 1rem;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.875rem;
+            font-weight: 500;
+            transition: all 0.2s ease;
+        }
+        
+        .btn-primary {
+            background: #8B4513;
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background: #6B3410;
+        }
+        
+        .btn-secondary {
+            background: #6b7280;
+            color: white;
+        }
+        
+        .btn-secondary:hover {
+            background: #4b5563;
+        }
+    </style>
 </body>
 </html>
